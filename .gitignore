@@ -1,0 +1,9 @@
+assets/
+OLD/
+node_modules/
+.env
+*.log
+logs/
+vendor/
+.DS_Store
+Thumbs.db

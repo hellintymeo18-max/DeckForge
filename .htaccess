@@ -1,0 +1,127 @@
+# Configuration Apache pour DeckForge
+# URLs SEO-friendly et sécurité
+
+# Activation du module de réécriture d'URL
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+    
+    # Redirection HTTPS (à activer en production)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    
+    # Empêcher l'accès direct aux fichiers sensibles
+    RewriteRule ^config/.*$ - [F,L]
+    RewriteRule ^includes/.*$ - [F,L]
+    RewriteRule ^logs/.*$ - [F,L]
+    
+    # URLs des decks : /deck/123-nom-du-deck
+    RewriteRule ^deck/([0-9]+)-([a-z0-9-]+)$ deck-view.php?id=$1 [L,QSA]
+    
+    # URLs des cartes : /card/123-nom-de-la-carte
+    RewriteRule ^card/([0-9]+)-([a-z0-9-]+)$ card-view.php?id=$1 [L,QSA]
+    
+    # URLs de recherche : /search/query
+    RewriteRule ^search/(.+)$ search.php?q=$1 [L,QSA]
+    
+    # Si le fichier ou dossier existe, on l'affiche directement
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+    
+    # Pour tout le reste (URLs non trouvées), afficher 404
+    RewriteRule ^(.*)$ 404.php [L]
+</IfModule>
+
+# Protection des fichiers de configuration
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protection du fichier composer
+<FilesMatch "composer\.(json|lock)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Empêcher l'affichage des répertoires
+Options -Indexes
+
+# Protection contre les injections
+<IfModule mod_rewrite.c>
+    RewriteCond %{QUERY_STRING} (<|%3C).*script.*(>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} GLOBALS(=|[|%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} _REQUEST(=|[|%[0-9A-Z]{0,2})
+    RewriteRule ^(.*)$ index.php [F,L]
+</IfModule>
+
+# Headers de sécurité
+<IfModule mod_headers.c>
+    # Protection XSS
+    Header set X-XSS-Protection "1; mode=block"
+    
+    # Empêcher le MIME sniffing
+    Header set X-Content-Type-Options "nosniff"
+    
+    # Clickjacking protection
+    Header always append X-Frame-Options SAMEORIGIN
+    
+    # Référer policy
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Compression GZIP
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Cache des ressources statiques
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # Images
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    
+    # CSS et JavaScript
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    
+    # Fonts
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+    
+    # Par défaut
+    ExpiresDefault "access plus 1 week"
+</IfModule>
+
+# Encodage UTF-8
+AddDefaultCharset UTF-8
+
+# Types MIME personnalisés
+<IfModule mod_mime.c>
+    AddType application/javascript js
+    AddType text/css css
+    AddType image/svg+xml svg
+    AddType font/woff woff
+    AddType font/woff2 woff2
+</IfModule>
+
+# Taille maximale des uploads (à adapter selon besoins)
+php_value upload_max_filesize 10M
+php_value post_max_size 10M
+
+# Erreurs PHP (désactiver en production)
+php_flag display_errors Off
+php_flag display_startup_errors Off
+
+# Timeout
+php_value max_execution_time 30
+php_value max_input_time 30
